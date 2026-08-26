@@ -4,9 +4,12 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\KycController;
+use App\Http\Controllers\HyperVergeWebhookController;
 
 Route::post('/auth/register', [RegisterController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
+
+Route::post('/webhooks/hyperverge/kyc', [HyperVergeWebhookController::class, 'handle']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
