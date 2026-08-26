@@ -15,6 +15,7 @@ return new class extends Migration {
             $table->string('pan_number', 10);
             $table->string('account_number', 34);
             $table->string('ifsc', 11);
+            $table->string('provider_transaction_id')->nullable()->unique();
             $table->string('status', 30)->default('not_started')->index();
             $table->text('rejection_reason')->nullable();
             $table->timestamps();
