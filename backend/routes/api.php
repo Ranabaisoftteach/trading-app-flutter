@@ -7,6 +7,7 @@ use App\Http\Controllers\KycController;
 use App\Http\Controllers\AutomaticKycController;
 use App\Http\Controllers\BrokerConnectController;
 use App\Http\Controllers\AngelOneDataController;
+use App\Http\Controllers\AngelOneOrderController;
 use App\Http\Controllers\HyperVergeWebhookController;
 
 Route::post('/auth/register', [RegisterController::class, 'register']);
@@ -29,4 +30,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/broker/angelone/orders', [AngelOneDataController::class, 'orders']);
     Route::get('/broker/angelone/trades', [AngelOneDataController::class, 'trades']);
     Route::post('/broker/angelone/quote', [AngelOneDataController::class, 'quote']);
+    Route::post('/broker/angelone/orders', [AngelOneOrderController::class, 'place']);
+    Route::post('/broker/angelone/orders/{orderId}/cancel', [AngelOneOrderController::class, 'cancel']);
 });
