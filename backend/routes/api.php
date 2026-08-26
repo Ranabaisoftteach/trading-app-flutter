@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\KycController;
 use App\Http\Controllers\AutomaticKycController;
+use App\Http\Controllers\BrokerConnectController;
 use App\Http\Controllers\HyperVergeWebhookController;
 
 Route::post('/auth/register', [RegisterController::class, 'register']);
@@ -17,4 +18,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/kyc/submit', [KycController::class, 'submit']);
     Route::post('/kyc/pan/verify', [AutomaticKycController::class, 'verifyPan']);
     Route::post('/kyc/aadhaar/start', [AutomaticKycController::class, 'startAadhaar']);
+
+    Route::post('/broker/angelone/connect', [BrokerConnectController::class, 'angelOneConnect']);
+    Route::post('/broker/angelone/disconnect', [BrokerConnectController::class, 'angelOneDisconnect']);
 });
