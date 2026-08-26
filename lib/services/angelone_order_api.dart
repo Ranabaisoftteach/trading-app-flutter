@@ -17,9 +17,7 @@ class AngelOneOrderApi {
       },
       body: jsonEncode(order),
     );
-    final data = response.body.isEmpty ? <String, dynamic>{} : jsonDecode(response.body) as Map<String, dynamic>;
-    if (response.statusCode < 200 || response.statusCode >= 300) throw Exception(data['message'] ?? 'Order submission failed');
-    return data;
+    return _decode(response, 'Order submission failed');
   }
 
   static Future<Map<String, dynamic>> cancelOrder(String orderId) async {
@@ -28,8 +26,19 @@ class AngelOneOrderApi {
       Uri.parse('$baseUrl/broker/angelone/orders/$orderId/cancel'),
       headers: {'Accept': 'application/json', if (token != null) 'Authorization': 'Bearer $token'},
     );
+    return _decode(response, 'Cancel failed');
+  }
+
+  static Future<List<dynamic>> orders() async {
+    final token = await AuthStorage.getToken();
+    final response = await http.get(Uri.parse('$baseUrl/broker/angelone/orders'), headers: {'Accept': 'application/json', if (token != null) 'Authorization': 'Bearer $token'});
+    final data = _decode(response, 'Unable to load orders');
+    return (data['data'] ?? data['orders'] ?? []) as List<dynamic>;
+  }
+
+  static Map<String, dynamic> _decode(http.Response response, String fallback) {
     final data = response.body.isEmpty ? <String, dynamic>{} : jsonDecode(response.body) as Map<String, dynamic>;
-    if (response.statusCode < 200 || response.statusCode >= 300) throw Exception(data['message'] ?? 'Cancel failed');
+    if (response.statusCode < 200 || response.statusCode >= 300) throw Exception(data['message'] ?? fallback);
     return data;
   }
 }
