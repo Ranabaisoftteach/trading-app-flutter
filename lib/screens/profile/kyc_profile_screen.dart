@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/kyc_service.dart';
 
 class KycProfileScreen extends StatefulWidget {
   const KycProfileScreen({super.key});
@@ -11,17 +12,33 @@ class _KycProfileScreenState extends State<KycProfileScreen> {
   final pan = TextEditingController();
   final account = TextEditingController();
   final ifsc = TextEditingController();
+  final kyc = KycService();
   String status = 'Not verified';
+  bool loading = false;
 
+  @override
+  void initState() { super.initState(); _loadStatus(); }
   @override
   void dispose() { name.dispose(); dob.dispose(); pan.dispose(); account.dispose(); ifsc.dispose(); super.dispose(); }
 
-  void submit() {
-    if (name.text.trim().isEmpty || dob.text.trim().isEmpty || pan.text.trim().isEmpty || account.text.trim().isEmpty || ifsc.text.trim().isEmpty) {
+  Future<void> _loadStatus() async {
+    try { final result = await kyc.status(); if (!mounted) return; setState(() => status = result.state.name); }
+    catch (_) {}
+  }
+
+  Future<void> submit() async {
+    if ([name, dob, pan, account, ifsc].any((c) => c.text.trim().isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please complete all KYC details'))); return;
     }
-    setState(() => status = 'Verification pending');
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('KYC submitted for verification')));
+    setState(() => loading = true);
+    try {
+      final result = await kyc.submit(name: name.text.trim(), dob: dob.text.trim(), pan: pan.text.trim().toUpperCase(), accountNumber: account.text.trim(), ifsc: ifsc.text.trim().toUpperCase());
+      if (!mounted) return;
+      setState(() => status = result['status']?.toString() ?? 'under_review');
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('KYC submitted for verification')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))));
+    } finally { if (mounted) setState(() => loading = false); }
   }
 
   @override
@@ -30,28 +47,15 @@ class _KycProfileScreenState extends State<KycProfileScreen> {
     body: ListView(padding: const EdgeInsets.all(16), children: [
       Card(elevation: 0, child: ListTile(leading: const CircleAvatar(radius: 26, child: Icon(Icons.person)), title: Text(name.text.isEmpty ? 'Your profile' : name.text, style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: Text(status))),
       const SizedBox(height: 20),
-      _section('Personal details', [
-        TextField(controller: name, onChanged: (_) => setState(() {}), decoration: const InputDecoration(labelText: 'Full name', border: OutlineInputBorder())),
-        const SizedBox(height: 12),
-        TextField(controller: dob, decoration: const InputDecoration(labelText: 'Date of birth (DD/MM/YYYY)', border: OutlineInputBorder())),
-      ]),
+      _section('Personal details', [TextField(controller: name, onChanged: (_) => setState(() {}), decoration: const InputDecoration(labelText: 'Full name', border: OutlineInputBorder())), const SizedBox(height: 12), TextField(controller: dob, decoration: const InputDecoration(labelText: 'Date of birth (YYYY-MM-DD)', border: OutlineInputBorder()))]),
       const SizedBox(height: 20),
-      _section('PAN verification', [
-        TextField(controller: pan, textCapitalization: TextCapitalization.characters, maxLength: 10, decoration: const InputDecoration(labelText: 'PAN number', hintText: 'ABCDE1234F', border: OutlineInputBorder())),
-        const Text('PAN is required for securities account verification.', style: TextStyle(fontSize: 12)),
-      ]),
+      _section('PAN verification', [TextField(controller: pan, textCapitalization: TextCapitalization.characters, maxLength: 10, decoration: const InputDecoration(labelText: 'PAN number', hintText: 'ABCDE1234F', border: OutlineInputBorder()))]),
       const SizedBox(height: 20),
-      _section('Bank account', [
-        TextField(controller: account, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Account number', border: OutlineInputBorder())),
-        const SizedBox(height: 12),
-        TextField(controller: ifsc, textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'IFSC code', hintText: 'ABCD0123456', border: OutlineInputBorder())),
-      ]),
+      _section('Bank account', [TextField(controller: account, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Account number', border: OutlineInputBorder())), const SizedBox(height: 12), TextField(controller: ifsc, textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'IFSC code', hintText: 'ABCD0123456', border: OutlineInputBorder()))]),
       const SizedBox(height: 20),
-      Card(elevation: 0, child: Padding(padding: const EdgeInsets.all(16), child: Row(children: [const Icon(Icons.verified_outlined), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('KYC status', style: TextStyle(fontWeight: FontWeight.w800)), const SizedBox(height: 4), Text(status)]))]))),
+      Card(elevation: 0, child: ListTile(leading: const Icon(Icons.verified_outlined), title: const Text('KYC status', style: TextStyle(fontWeight: FontWeight.w800)), subtitle: Text(status))),
       const SizedBox(height: 20),
-      SizedBox(height: 52, child: FilledButton(onPressed: status == 'Verification pending' ? null : submit, child: Text(status == 'Verification pending' ? 'Verification pending' : 'Submit for verification'))),
-      const SizedBox(height: 16),
-      const Text('Production: transmit sensitive KYC data only over authenticated HTTPS APIs and protect it on the backend.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+      SizedBox(height: 52, child: FilledButton(onPressed: loading ? null : submit, child: loading ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator()) : const Text('Submit for verification'))),
     ]),
   );
 
